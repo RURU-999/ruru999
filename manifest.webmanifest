@@ -1,0 +1,9 @@
+{
+  "name": "RURU999 犬舎管理",
+  "short_name": "RURU999",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fbf7f1",
+  "theme_color": "#6b4b3e",
+  "icons": []
+}
