@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6b4b3e">
+<link rel="manifest" href="manifest.webmanifest">
+<title>RURU999 犬舎管理</title>
+<style>
+:root{--brown:#6b4b3e;--cream:#fbf7f1;--line:#e8ddd2;--ink:#302923}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+header{background:var(--brown);color:white;padding:18px 16px;position:sticky;top:0;z-index:3}
+header h1{margin:0;font-size:21px}header p{margin:4px 0 0;font-size:12px;opacity:.9}
+main{max-width:900px;margin:auto;padding:16px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button{border:0;border-radius:10px;padding:11px 14px;background:var(--brown);color:white;font-weight:600;cursor:pointer}
+button.secondary{background:#e9ded4;color:var(--ink)}button.danger{background:#a33b32}
+.panel{background:white;border:1px solid var(--line);border-radius:15px;padding:16px;margin:12px 0;box-shadow:0 2px 8px #00000008}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+label{display:block;font-size:13px;font-weight:600;margin:10px 0 5px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #d8cec5;border-radius:9px;background:white;font:inherit}
+.small{font-size:12px;color:#756b63}.dog{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.dog h3{margin:0 0 5px}.pill{display:inline-block;background:#f2e9e1;border-radius:20px;padding:3px 9px;font-size:12px;margin:2px}
+.hidden{display:none!important}.status{padding:10px;border-radius:9px;background:#f4eee8;font-size:13px}
+nav{display:flex;gap:6px;overflow:auto;padding-bottom:6px}nav button{white-space:nowrap}
+@media(min-width:650px){main{padding:24px}}
+</style>
+</head>
+<body>
+<header><h1>🐾 RURU999 犬舎管理</h1><p>繁殖・健康・子犬の記録をまとめて管理</p></header>
+<main>
+<section class="panel">
+ <div id="signedOut">
+  <h2>ログイン</h2><p>Googleアカウントでログインして、スマホとパソコンでデータを共有します。</p>
+  <button id="loginBtn">Googleでログイン</button>
+ </div>
+ <div id="signedIn" class="hidden">
+  <div class="dog"><div><strong id="userEmail"></strong><div class="small">ログイン中</div></div><button class="secondary" id="logoutBtn">ログアウト</button></div>
+ </div>
+ <p id="status" class="status">Firebaseに接続する準備ができています。</p>
+</section>
+<div id="app" class="hidden">
+ <nav>
+  <button data-tab="dogs">犬の登録</button>
+  <button data-tab="breeding" class="secondary">繁殖記録</button>
+  <button data-tab="puppies" class="secondary">出産・子犬</button>
+  <button data-tab="health" class="secondary">健康・証明書</button>
+ </nav>
+ <section id="dogs" class="panel">
+  <h2>犬の登録</h2>
+  <form id="dogForm">
+   <input type="hidden" id="dogId">
+   <div class="grid">
+    <div><label>名前 *</label><input id="name" required placeholder="例：ルル"></div>
+    <div><label>犬種 *</label><input id="breed" required list="breeds" placeholder="犬種を入力・選択"><datalist id="breeds"></datalist></div>
+    <div><label>毛色</label><input id="color" placeholder="犬種に合わせて入力"></div>
+    <div><label>性別</label><select id="sex"><option value="メス">メス</option><option value="オス">オス</option></select></div>
+    <div><label>生年月日</label><input id="birth" type="date"></div>
+    <div><label>マイクロチップ番号</label><input id="chip"></div>
+    <div><label>血統書番号</label><input id="pedigree"></div>
+    <div><label>備考</label><input id="memo"></div>
+   </div>
+   <div class="bar"><button type="submit">保存する</button><button type="button" class="secondary" id="clearForm">入力をクリア</button></div>
+  </form>
+ </section>
+ <section id="breeding" class="panel hidden"><h2>繁殖記録</h2><p class="small">発情開始日・交配日・相手犬・予定日を記録できます。交配日から63日後を目安として計算します。</p>
+  <form id="recordForm" data-kind="breeding">
+   <div class="grid"><div><label>母犬</label><select id="dam"></select></div><div><label>父犬</label><select id="sire"></select></div><div><label>発情開始日</label><input id="heat" type="date"></div><div><label>交配日</label><input id="mating" type="date"></div><div><label>出産予定日（目安）</label><input id="due" type="date" readonly></div><div><label>メモ</label><input id="breedMemo"></div></div>
+   <div class="bar"><button>繁殖記録を保存</button></div>
+  </form><div id="breedingList"></div>
+ </section>
+ <section id="puppies" class="panel hidden"><h2>出産・子犬</h2>
+  <form id="birthForm" data-kind="birth"><div class="grid"><div><label>母犬</label><select id="birthDam"></select></div><div><label>出産日</label><input id="birthDate" type="date"></div><div><label>産子数</label><input id="litter" type="number" min="0"></div><div><label>メモ</label><input id="birthMemo"></div></div><div class="bar"><button>出産記録を保存</button></div></form>
+  <form id="weightForm" data-kind="weight"><div class="grid"><div><label>子犬の名前</label><input id="puppyName" required></div><div><label>測定日</label><input id="weightDate" type="date"></div><div><label>体重（g）</label><input id="weight" type="number" min="0"></div></div><div class="bar"><button>体重を保存</button></div></form><div id="puppyList"></div>
+ </section>
+ <section id="health" class="panel hidden"><h2>健康・証明書</h2>
+  <form id="healthForm" data-kind="health"><div class="grid"><div><label>犬</label><select id="healthDog"></select></div><div><label>記録の種類</label><select id="healthType"><option>ワクチン</option><option>健康診断</option><option>遺伝子検査</option><option>血統書・証明書</option><option>譲渡・販売</option><option>その他</option></select></div><div><label>日付</label><input id="healthDate" type="date"></div><div><label>内容・結果・番号</label><input id="healthNote"></div></div><div class="bar"><button>記録を保存</button></div></form><div id="healthList"></div>
+ </section>
+</div>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+const firebaseConfig = {
+ apiKey:"AIzaSyAUfBVNOg9E22wggAQ0MBOHKHOwGbw2BrA",
+ authDomain:"ruru999-12451.firebaseapp.com",
+ projectId:"ruru999-12451",
+ storageBucket:"ruru999-12451.firebasestorage.app",
+ messagingSenderId:"298250037380",
+ appId:"1:298250037380:web:48f0ad6bf1061ab09e7ad1",
+ measurementId:"G-VWNVZ5EQJM"
+};
+const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
+const $=id=>document.getElementById(id);
+let currentUser=null, dogs=[];
+const status=(s)=>$("status").textContent=s;
+const path=(kind)=>collection(db,"users",currentUser.uid,kind);
+$("loginBtn").onclick=()=>signInWithRedirect(auth,new GoogleAuthProvider());
+$("logoutBtn").onclick=()=>signOut(auth);
+getRedirectResult(auth).catch(e=>status("ログインエラー："+e.message));
+onAuthStateChanged(auth,async user=>{
+ currentUser=user;
+ $("signedOut").classList.toggle("hidden",!!user); $("signedIn").classList.toggle("hidden",!user);
+ $("app").classList.toggle("hidden",!user);
+ if(user){$("userEmail").textContent=user.email||"Googleアカウント";status("ログインしました。データを読み込んでいます。");await refresh();} else status("Googleアカウントでログインしてください。");
+});
+async function refresh(){
+ try{
+  const snap=await getDocs(path("dogs")); dogs=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderDogs(); fillDogSelects(); await renderRecords();
+  status("クラウド同期済み："+dogs.length+"頭");
+ }catch(e){status("読み込みエラー："+e.message+"（Firestoreルールとログイン状態を確認してください）");}
+}
+function renderDogs(){
+ $("dogList")?.remove();
+ const wrap=document.createElement("div");wrap.id="dogList";
+ if(!dogs.length)wrap.innerHTML='<p class="small">まだ犬が登録されていません。</p>';
+ dogs.forEach(d=>{const el=document.createElement("div");el.className="panel dog";const info=document.createElement("div");info.innerHTML=`<h3></h3><span class="pill"></span><span class="pill"></span><p class="small"></p>`;info.querySelector("h3").textContent=d.name||"名前なし";info.querySelectorAll("span")[0].textContent=d.breed||"犬種未設定";info.querySelectorAll("span")[1].textContent=d.sex||"";info.querySelector("p").textContent=[d.color,d.birth,d.chip?"MC："+d.chip:"",d.pedigree?"血統書："+d.pedigree:""].filter(Boolean).join(" / ");const actions=document.createElement("div");const edit=document.createElement("button");edit.textContent="編集";edit.className="secondary";edit.onclick=()=>editDog(d);const del=document.createElement("button");del.textContent="削除";del.className="danger";del.onclick=async()=>{if(confirm("この犬の登録を削除しますか？")){await deleteDoc(doc(db,"users",currentUser.uid,"dogs",d.id));await refresh();}};actions.append(edit,del);el.append(info,actions);wrap.append(el);});
+ $("dogs").append(wrap);
+}
+async function saveDog(e){e.preventDefault();const id=$("dogId").value;const data={name:$("name").value.trim(),breed:$("breed").value.trim(),color:$("color").value.trim(),sex:$("sex").value,birth:$("birth").value,chip:$("chip").value.trim(),pedigree:$("pedigree").value.trim(),memo:$("memo").value.trim(),updatedAt:serverTimestamp()};try{if(id)await updateDoc(doc(db,"users",currentUser.uid,"dogs",id),data);else await addDoc(path("dogs"),{...data,createdAt:serverTimestamp()});$("dogForm").reset();$("dogId").value="";await refresh();status("犬の情報を保存しました。");}catch(e){status("保存できません："+e.message);}}
+$("dogForm").onsubmit=saveDog;
+$("clearForm").onclick=()=>{$("dogForm").reset();$("dogId").value="";};
+function editDog(d){$("dogId").value=d.id;for(const k of ["name","breed","color","sex","birth","chip","pedigree","memo"])$(k).value=d[k]||"";window.scrollTo({top:0,behavior:"smooth"});}
+function fillDogSelects(){["dam","sire","birthDam","healthDog"].forEach(id=>{$(id).innerHTML='<option value="">選択してください</option>'+dogs.map(d=>`<option value="${d.id}">${escapeHtml(d.name)}（${escapeHtml(d.breed||"")}）</option>`).join("");});}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+$("mating").onchange=()=>{if($("mating").value){let d=new Date($("mating").value+"T12:00:00");d.setDate(d.getDate()+63);$("due").value=d.toISOString().slice(0,10);}};
+for(const formId of ["recordForm","birthForm","weightForm","healthForm"]){$(formId).onsubmit=async e=>{e.preventDefault();let kind=$(formId).dataset.kind;let fields={};$(formId).querySelectorAll("input,select").forEach(x=>{if(x.id)fields[x.id]=x.value;});try{await addDoc(path(kind),{...fields,createdAt:serverTimestamp()});$(formId).reset();await renderRecords();status("記録を保存しました。");}catch(err){status("保存エラー："+err.message);}};}
+async function renderRecords(){for(const [kind,target] of [["breeding","breedingList"],["birth","puppyList"],["weight","puppyList"],["health","healthList"]]){try{let snap=await getDocs(path(kind));let items=snap.docs.map(d=>d.data());if(kind==="breeding"||kind==="health")$(target).innerHTML=items.map(x=>`<div class="panel"><b>${escapeHtml(x.dam||x.healthDog||"記録")}</b><p class="small">${escapeHtml(Object.values(x).filter(v=>typeof v==="string"&&v).join(" / "))}</p></div>`).join("");else if(items.length)$(target).innerHTML+=items.map(x=>`<div class="panel"><b>${escapeHtml(kind==="birth"?"出産記録":"体重記録")}</b><p class="small">${escapeHtml(Object.values(x).filter(v=>typeof v==="string"&&v).join(" / "))}</p></div>`).join("");}catch(e){}}}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.add("secondary"));b.classList.remove("secondary");["dogs","breeding","puppies","health"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.tab));});
+const breedNames=["トイプードル","スタンダードプードル","ミニチュアプードル","柴犬","シーズー","チワワ","ミニチュアダックスフンド","ポメラニアン","マルチーズ","ヨークシャーテリア","フレンチブルドッグ","パグ","ゴールデンレトリバー","ラブラドールレトリバー","ボーダーコリー","コーギー","ビションフリーゼ","ペキニーズ","パピヨン","キャバリア","ジャックラッセルテリア","ミニチュアシュナウザー","ビーグル","秋田犬","紀州犬","甲斐犬","シベリアンハスキー","サモエド","ボストンテリア","ブルドッグ","その他"];
+$("breeds").innerHTML=breedNames.map(x=>`<option value="${x}">`).join("");
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+</script>
+</body></html>
